@@ -19,6 +19,3 @@ Run a background task in huey and store the result in oTree. Compatible with oTr
 ## Heroku
 - activate the second and third dyno (this may cost something)
 - make sure redis addon is installed (but should be anyway with otree 2.4)
-
-## Demo
-https://otree-v24-huey.herokuapp.com

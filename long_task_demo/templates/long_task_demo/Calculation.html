@@ -1,0 +1,43 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block title %}
+    Calculation
+{% endblock %}
+
+{% block content %}
+    <p>Please wait for the calculation to finish...</p>
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // set up the path for the websocket
+        var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+        var ws_path = ws_scheme + '://' + window.location.host + "/long_task_demo/{{ player.subsession_id }},{{ player.round_number }},{{ player.group_id }},{{ player.id_in_group }}/";
+        let form = document.getElementById('form');
+        let interval_seconds = 1;
+        let interval_id;
+        let socket = new ReconnectingWebSocket(ws_path);
+
+        socket.onmessage = function (e) {
+            let data = JSON.parse(e.data);
+            console.log(data);
+            if (data.message === "got_result") {
+                clearInterval(interval_id);
+                form.submit();
+            }
+        };
+        
+        socket.onopen = function () {
+            console.log('WebSocket connected');
+            interval_id = setInterval(function(e) {
+                socket.send(JSON.stringify({message: 'get_result'}));
+            }, interval_seconds*1000);
+        };
+        socket.onclose = function () {
+            console.log('WebSocket disconnected');
+        };
+
+    </script>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block title %}
+    Decision
+{% endblock %}
+
+{% block content %}
+    <p>Calculation done</p>
+    <p>Result: {{ player.task_result }}</p>
+    {% next_button %}
+
+{% endblock %}

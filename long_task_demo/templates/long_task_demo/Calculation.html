@@ -14,11 +14,12 @@
     <script>
         // set up the path for the websocket
         var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
-        var ws_path = ws_scheme + '://' + window.location.host + "/long_task_demo/{{ player.subsession_id }},{{ player.round_number }},{{ player.group_id }},{{ player.id_in_group }}/";
+        var ws_path = ws_scheme + '://' + window.location.host + "/background/{{ player.subsession_id }},{{ player.round_number }},{{ player.group_id }},{{ player.id_in_group }}/";
+        let socket = new ReconnectingWebSocket(ws_path);
+
         let form = document.getElementById('form');
         let interval_seconds = 1;
         let interval_id;
-        let socket = new ReconnectingWebSocket(ws_path);
 
         socket.onmessage = function (e) {
             let data = JSON.parse(e.data);

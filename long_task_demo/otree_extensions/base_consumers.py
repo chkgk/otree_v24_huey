@@ -1,9 +1,11 @@
-import otree.channels.utils as channel_utils
 from django.conf import settings
 from channels.generic.websocket import JsonWebsocketConsumer
 from importlib import import_module
+from asgiref.sync import async_to_sync
 
+import json
 import logging
+import otree.channels.utils as channel_utils
 
 ALWAYS_UNRESTRICTED = 'ALWAYS_UNRESTRICTED'
 UNRESTRICTED_IN_DEMO_MODE = 'UNRESTRICTED_IN_DEMO_MODE'
@@ -14,8 +16,6 @@ logger = logging.getLogger(__name__)
 def get_models_module(app_name):
     module_name = '{}.models'.format(app_name)
     return import_module(module_name)
-
-
 
 #  Copied from otree.channels.consumers.py - where Chris asks not to directly subclass but rather copy this over
 #  It provides a basic implementation of a consumer with several functions to be defined by the implementing class
@@ -98,3 +98,46 @@ class _OTreeJsonWebsocketConsumer(JsonWebsocketConsumer):
 
     def post_receive_json(self, content, **kwargs):
         pass
+
+
+# In this class, you only need to change the "post_receive_json" function
+class BackgroundConsumer(_OTreeJsonWebsocketConsumer):
+    def long_task_demo_message(self, event):
+        # Send message to WebSocket
+        self.send(text_data=json.dumps(event))
+
+    # parse the parameters passed in the websockets URL and return a dict with name: value pairs
+    def clean_kwargs(self, params):
+        subsession_id, round_number, group_id, player_id = params.split(',')
+        return {
+            'subsession_id': subsession_id,
+            'round_number': int(round_number),
+            'group_id': int(group_id),
+            'player_id': int(player_id)
+        }
+
+    # return a unique group_name for the channel_layer so that each oTree group gets its own channel_layer
+    def group_name(self, subsession_id, round_number, group_id, player_id):
+        return f"ws-{subsession_id}-{round_number}-{group_id}"
+
+    def post_connect(self, subsession_id, round_number, group_id, player_id):
+        # add them to the channel_layer
+        self.room_group_name = self.group_name(subsession_id, round_number, group_id, player_id)
+        async_to_sync(self.channel_layer.group_add)(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    # perform any actions necessary before removing a subject from the channel_layer.  In our case there's nothing to do but
+    # discard them from the channel layer
+    def pre_disconnect(self, subsession_id, round_number, group_id, player_id):
+
+        # remove the player from their channel_layer
+        self.room_group_name = self.group_name(subsession_id, round_number, group_id, player_id)
+        async_to_sync(self.channel_layer.group_discard)(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    def post_receive_json(self, content, subsession_id, round_number, group_id, player_id):
+        raise NotImplementedError()

@@ -1,5 +1,4 @@
 from os import environ
-from huey import RedisHuey, SqliteHuey
 
 # if you set a property in SESSION_CONFIG_DEFAULTS, it will be inherited by all configs
 # in SESSION_CONFIGS, except those that explicitly override it.
@@ -39,11 +38,23 @@ DEMO_PAGE_INTRO_HTML = """ """
 SECRET_KEY = 'knmws4id-5zk$&x3b=*=jsf^a0_^jm)fgo%0f9)ce)7j=q_bb4'
 
 # if an app is included in SESSION_CONFIGS, you don't need to list it here
-INSTALLED_APPS = ['otree', 'huey.contrib.djhuey']
+INSTALLED_APPS = ['otree']
+
+
+# HUEY additions:
+# add your app name to this list, replacing "long_task_demo"
 EXTENSION_APPS = ['long_task_demo']
 
-if environ.get('REDIS_URL', False):
-    HUEY = RedisHuey()
-else:
-    HUEY = SqliteHuey()
+INSTALLED_APPS += ['huey.contrib.djhuey']
+HUEY = {
+    'huey_class': 'huey.RedisHuey' if environ.get('REDIS_URL', False) else 'huey.SqliteHuey',
+    'immediate': False,
+    'consumer': {
+        'workers': 4,  # how many background processes to run in parallel
+        'worker_type': 'thread',
+        'scheduler_interval': 1,  # Check schedule every second, -s.
+        'check_worker_health': True,  # Enable worker health checks.
+        'health_check_interval': 1,  # Check worker health every second.
+    },
+}
 
